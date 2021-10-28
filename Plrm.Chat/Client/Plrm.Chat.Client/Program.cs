@@ -40,8 +40,7 @@ namespace Plrm.Chat.Client
 
             client.Client.Shutdown(SocketShutdown.Send);
             thread.Join();
-            //ns.Close();
-            //client.Close();
+
             Console.WriteLine("Disconnected from server");
 
             Console.WriteLine("Enter any KEY to exit...");
@@ -58,7 +57,7 @@ namespace Plrm.Chat.Client
 
                 while ((byte_count = ns.Read(receivedBytes, 0, receivedBytes.Length)) > 0)
                 {
-                    Console.Write(Encoding.UTF8.GetString(receivedBytes, 0, byte_count));
+                    Console.WriteLine(Encoding.UTF8.GetString(receivedBytes, 0, byte_count));
                 }
             }
             catch(Exception e)
