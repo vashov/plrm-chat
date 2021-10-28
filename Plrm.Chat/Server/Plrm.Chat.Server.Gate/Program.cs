@@ -1,14 +1,13 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Plrm.Chat.Server.Gate.Repositories.Messages;
+using Plrm.Chat.Server.Gate.Repositories.Users;
 using System.Net;
 
 namespace Plrm.Chat.Server.Gate
 {
     class Program
     {
-        
-
         static void Main(string[] args)
         {
             var serviceCollection = new ServiceCollection();
@@ -18,8 +17,9 @@ namespace Plrm.Chat.Server.Gate
 
             var logger = serviceProvider.GetRequiredService<ILogger<Chat>>();
             var messageRepository = serviceProvider.GetRequiredService<IMessageRepository>();
+            var userRepository = serviceProvider.GetRequiredService<IUserRepository>();
 
-            var chat = new Chat(logger, messageRepository, IPAddress.Any, 5000);
+            var chat = new Chat(logger, messageRepository, userRepository, IPAddress.Any, 5000);
             chat.Start();
         }
 
@@ -29,6 +29,7 @@ namespace Plrm.Chat.Server.Gate
                 .Configure<LoggerFilterOptions>(options => options.MinLevel = LogLevel.Trace);
 
             services.AddSingleton<IMessageRepository, MessageRepository>();
+            services.AddSingleton<IUserRepository, UserRepository>();
         }
     }
 }

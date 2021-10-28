@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
 using Plrm.Chat.Server.Gate.Repositories.Messages;
+using Plrm.Chat.Server.Gate.Repositories.Users;
 using Plrm.Chat.Shared.Models;
 using System;
 using System.Collections.Generic;
@@ -17,6 +18,7 @@ namespace Plrm.Chat.Server.Gate
 
         private readonly ILogger<Chat> _logger;
         private readonly IMessageRepository _messageRepository;
+        private readonly IUserRepository _userRepository;
         private readonly IPAddress _address;
         private readonly int _port;
 
@@ -28,11 +30,13 @@ namespace Plrm.Chat.Server.Gate
         public Chat(
             ILogger<Chat> logger,
             IMessageRepository messageRepository,
+            IUserRepository userRepository,
             IPAddress address,
             int port)
         {
             _logger = logger;
             _messageRepository = messageRepository;
+            _userRepository = userRepository;
             _address = address;
             _port = port;
         }
