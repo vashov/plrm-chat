@@ -1,4 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
+using Plrm.Chat.Server.Gate.Repositories.Messages;
+using Plrm.Chat.Shared.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,6 +16,7 @@ namespace Plrm.Chat.Server.Gate
     {
 
         private readonly ILogger<Chat> _logger;
+        private readonly IMessageRepository _messageRepository;
         private readonly IPAddress _address;
         private readonly int _port;
 
@@ -22,9 +25,14 @@ namespace Plrm.Chat.Server.Gate
         private readonly object _lock = new object();
         private readonly Dictionary<int, TcpClient> _listClients = new Dictionary<int, TcpClient>();
 
-        public Chat(ILogger<Chat> logger, IPAddress address, int port)
+        public Chat(
+            ILogger<Chat> logger,
+            IMessageRepository messageRepository,
+            IPAddress address,
+            int port)
         {
             _logger = logger;
+            _messageRepository = messageRepository;
             _address = address;
             _port = port;
         }
@@ -88,8 +96,12 @@ namespace Plrm.Chat.Server.Gate
                     break;
                 }
 
-                string data = Encoding.UTF8.GetString(buffer, 0, byte_count);
-                Broadcast(data);
+                var content = buffer.Take(byte_count).ToArray();
+                string data = Encoding.UTF8.GetString(content);
+
+                // TODO userId
+                var message = _messageRepository.Create(userId: 0, content);
+                Broadcast(message);
 
                 _logger.LogTrace(data);
             }
@@ -101,17 +113,15 @@ namespace Plrm.Chat.Server.Gate
             client.Close();
         }
 
-        private void Broadcast(string data)
+        private void Broadcast(ChatMessage message)
         {
-            byte[] buffer = Encoding.UTF8.GetBytes(data + Environment.NewLine);
-
             lock (_lock)
             {
                 foreach (TcpClient c in _listClients.Values)
                 {
                     NetworkStream stream = c.GetStream();
 
-                    stream.Write(buffer, 0, buffer.Length);
+                    stream.Write(message.Content);
                 }
             }
         }
