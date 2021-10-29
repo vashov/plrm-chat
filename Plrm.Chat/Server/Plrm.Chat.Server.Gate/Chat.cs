@@ -43,7 +43,7 @@ namespace Plrm.Chat.Server.Gate
 
         public void Start()
         {
-            _listener = new TcpListener(IPAddress.Any, 5000);
+            _listener = new TcpListener(_address, _port);
             _listener.Start();
 
             int count = 1;
