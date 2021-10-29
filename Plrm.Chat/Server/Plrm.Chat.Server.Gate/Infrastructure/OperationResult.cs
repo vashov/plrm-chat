@@ -1,4 +1,4 @@
-﻿namespace Plrm.Chat.Server.Gate.lib
+﻿namespace Plrm.Chat.Server.Gate.Infrastructure
 {
     public class OperationResult<T>
     {

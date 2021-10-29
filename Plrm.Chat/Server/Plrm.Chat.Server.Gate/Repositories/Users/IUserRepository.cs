@@ -1,4 +1,4 @@
-﻿using Plrm.Chat.Server.Gate.lib;
+﻿using Plrm.Chat.Server.Gate.Infrastructure;
 using Plrm.Chat.Server.Gate.Repositories.Users.Models;
 
 namespace Plrm.Chat.Server.Gate.Repositories.Users

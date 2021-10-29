@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Logging;
-using Plrm.Chat.Server.Gate.lib;
+using Plrm.Chat.Server.Gate.Infrastructure;
 using Plrm.Chat.Server.Gate.Repositories.Users.Models;
+using Plrm.Chat.Shared.Validators;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -62,8 +63,7 @@ namespace Plrm.Chat.Server.Gate.Repositories.Users
 
         private bool IsValid(string login, string password)
         {
-            return !string.IsNullOrWhiteSpace(login)
-                && !string.IsNullOrWhiteSpace(password);
+            return UserCredentialsValidator.IsValid(login, password);
         }
     }
 }
