@@ -84,9 +84,7 @@ namespace Plrm.Chat.Server.Gate
             OperationResult<(User User, bool IsNewUser)> result = AuthenticateClient(id, client);
             if (!result.IsOk)
             {
-                NetworkStream stream = client.GetStream();
-                byte[] response = Encoding.UTF8.GetBytes(result.ErrorMessage);
-                stream.Write(response);
+                chatClient.SendAuthorizeResponseError(result.ErrorMessage);
 
                 lock (_lock) _listClients.Remove(id);
                 client.Client.Shutdown(SocketShutdown.Both);
@@ -95,6 +93,7 @@ namespace Plrm.Chat.Server.Gate
             }
 
             chatClient.Authorize(result.Result.User);
+            chatClient.SendAuthorizeResponseSuccess();
 
             string userConnectedMessage = result.Result.IsNewUser ? $"{chatClient.User.Login} registered and connected"
                 : $"{chatClient.User.Login} connected";

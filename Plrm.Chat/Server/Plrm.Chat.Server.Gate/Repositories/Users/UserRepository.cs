@@ -57,8 +57,7 @@ namespace Plrm.Chat.Server.Gate.Repositories.Users
 
         public User FindByLogin(string login)
         {
-            _users.FirstOrDefault(u => u.Login == login);
-            throw new NotImplementedException();
+            return _users.FirstOrDefault(u => u.Login == login);
         }
 
         private bool IsValid(string login, string password)
