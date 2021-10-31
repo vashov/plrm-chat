@@ -11,160 +11,68 @@ namespace Plrm.Chat.Client
 {
     class Program
     {
-        static string _login = null;
-        static string _password = null;
-
-        static bool? _loggedInToChat = null;
         static string _errorMsg = null;
 
         static void Main(string[] args)
         {
-            IPAddress ip = IPAddress.Parse("127.0.0.1");
-            int port = 5000;
+            IPAddress serverAddress = IPAddress.Parse("127.0.0.1");
+            int serverPort = 5000;
 
-            TcpClient client = null;
-            NetworkStream ns = null;
-            Thread thread = null; 
+            var authManager = new AuthManager();
+            var chat = new Chat(authManager, serverAddress, serverPort);
+
             try
             {
-                while (_loggedInToChat != true)
+                while (authManager.IsLoggedIn != true)
                 {
-                    InputCredentials();
+                    InputCredentials(authManager);
 
-                    client = new TcpClient();
-                    client.Connect(ip, port);
+                    chat.Connect();
 
-                    Console.WriteLine("Connected");
-
-                    ns = client.GetStream();
-                    thread = new Thread(o => ReceiveData((TcpClient)o));
-                    thread.Start(client);
-
-                    var successLogin = LogInToChat(ns);
+                    var successLogin = chat.LogInToChat();
                     if (!successLogin.Value)
                     {
                         Console.WriteLine($"Authorization error: {_errorMsg}");
 
-                        //client.Client.Shutdown(SocketShutdown.Send);
                         //thread.Join();
-                        client.Close();
-                        Console.WriteLine("Disconnected from server");
+                        chat.Disconnect();
                     }
                 }
 
                 string s;
                 while (!string.IsNullOrEmpty((s = Console.ReadLine())))
                 {
-                    try
-                    {
-                        byte[] buffer = Encoding.UTF8.GetBytes(s);
-                        ns.Write(buffer, 0, buffer.Length);
-
-                    }
-                    catch (Exception e)
-                    {
-                        Console.WriteLine($"{e}");
-                        break;
-                    }
+                    chat.SendMessage(s);
                 }
 
             }
             finally
             {
-                client?.Client.Shutdown(SocketShutdown.Send);
-                thread?.Join();
-                client?.Close();
-                Console.WriteLine("Disconnected from server");
+                chat.Disconnect();
+                //client?.Client.Shutdown(SocketShutdown.Send);
+                //thread?.Join();
+                //client?.Close();
             }
 
             Console.WriteLine("Enter any KEY to exit...");
             Console.ReadKey();
         }
 
-        static void InputCredentials()
+        static void InputCredentials(AuthManager authManager)
         {
-            _login = null;
-            _password = null;
+            authManager.ResetCredentials();
 
-            while (!UserCredentialsValidator.IsLoginValid(_login))
+            while (!UserCredentialsValidator.IsLoginValid(authManager.Login))
             {
                 Console.Write("Enter Login: ");
-                _login = Console.ReadLine();
+                authManager.Login = Console.ReadLine();
             }
 
-            while (!UserCredentialsValidator.IsPasswordValid(_password))
+            while (!UserCredentialsValidator.IsPasswordValid(authManager.Password))
             {
                 Console.Write("Enter password: ");
-                _password = Console.ReadLine();
+                authManager.Password = Console.ReadLine();
             }
-        }
-
-        static bool? LogInToChat(NetworkStream stream)
-        {
-            var userCredentials = new UserCredentials
-            {
-                Login = _login,
-                Password = _password
-            };
-
-            var json = JsonSerializer.Serialize(userCredentials);
-            try
-            {
-                byte[] buffer = Encoding.UTF8.GetBytes(json);
-                stream.Write(buffer, 0, buffer.Length);
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine($"{e}");
-                return false;
-            }
-
-            while (_loggedInToChat == null)
-            {
-                Console.WriteLine("Wait authorization response ... ");
-                Thread.Sleep(100);
-            }
-
-            return _loggedInToChat;
-        }
-
-        static void ReceiveData(TcpClient client)
-        {
-            try
-            {
-                NetworkStream ns = client.GetStream();
-                byte[] receivedBytes = new byte[1024];
-                int byte_count;
-
-                while (client.Connected && ns.CanRead)
-                {
-                    if (!((byte_count = ns.Read(receivedBytes, 0, receivedBytes.Length)) > 0))
-                    {
-                        return;
-                    }
-
-                    if (_loggedInToChat != true)
-                    {
-                        var json = Encoding.UTF8.GetString(receivedBytes, 0, byte_count);
-                        var authResponse = JsonSerializer.Deserialize<AuthorizationResponse>(json);
-                        if (authResponse.IsOk)
-                        {
-                            _loggedInToChat = true;
-                            continue;
-                        }
-
-                        _errorMsg = authResponse.Error;
-                        _loggedInToChat = false;
-                        continue;
-                    }
-                    Console.WriteLine(Encoding.UTF8.GetString(receivedBytes, 0, byte_count));
-                }
-            }
-            catch(Exception e)
-            {
-                Console.WriteLine($"{e}");
-            }
-            
         }
     }
 }
