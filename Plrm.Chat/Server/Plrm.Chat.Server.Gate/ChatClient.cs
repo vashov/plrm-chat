@@ -6,6 +6,7 @@ using System.Linq;
 using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
+using System.Threading.Tasks;
 
 namespace Plrm.Chat.Server.Gate
 {
@@ -27,7 +28,7 @@ namespace Plrm.Chat.Server.Gate
             User = user;
         }
 
-        public void SendAuthorizeResponseSuccess()
+        public async Task SendAuthorizeResponseSuccess()
         {
             NetworkStream stream = _client.GetStream();
 
@@ -39,10 +40,10 @@ namespace Plrm.Chat.Server.Gate
 
             var json = JsonSerializer.Serialize(authResponse);
             byte[] response = Encoding.UTF8.GetBytes(json);
-            stream.Write(response);
+            await stream.WriteAsync(response);
         }
 
-        public void SendAuthorizeResponseError(string error)
+        public async Task SendAuthorizeResponseError(string error)
         {
             NetworkStream stream = _client.GetStream();
 
@@ -54,19 +55,19 @@ namespace Plrm.Chat.Server.Gate
 
             var json = JsonSerializer.Serialize(authResponse);
             byte[] response = Encoding.UTF8.GetBytes(json);
-            stream.Write(response);
+            await stream.WriteAsync(response);
         }
 
-        public void SendMessage(ChatMessage message)
+        public async Task SendMessage(ChatMessage message)
         {
             var json = JsonSerializer.Serialize(message);
             byte[] data = Encoding.UTF8.GetBytes(json);
 
             NetworkStream stream = _client.GetStream();
-            stream.Write(data);
+            await stream.WriteAsync(data);
         }
 
-        public OperationResult<byte[]> ReadMessage()
+        public async Task<OperationResult<byte[]>> ReadMessage()
         {
             NetworkStream stream = _client.GetStream();
             byte[] buffer = new byte[1024];
@@ -75,7 +76,7 @@ namespace Plrm.Chat.Server.Gate
 
             try
             {
-                byteCount = stream.Read(buffer, 0, buffer.Length);
+                byteCount = await stream.ReadAsync(buffer, 0, buffer.Length);
             }
             catch (System.IO.IOException e)
             {
@@ -95,7 +96,7 @@ namespace Plrm.Chat.Server.Gate
             return OperationResult<byte[]>.Ok(content);
         }
 
-        public OperationResult<UserCredentials> ReadAuthenticationMessage()
+        public async Task<OperationResult<UserCredentials>> ReadAuthenticationMessage()
         {
             NetworkStream stream = _client.GetStream();
             byte[] buffer = new byte[1024];
@@ -104,7 +105,7 @@ namespace Plrm.Chat.Server.Gate
 
             try
             {
-                byteCount = stream.Read(buffer, 0, buffer.Length);
+                byteCount = await stream.ReadAsync(buffer, 0, buffer.Length);
             }
             catch (System.IO.IOException e)
             {

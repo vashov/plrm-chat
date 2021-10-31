@@ -31,17 +31,27 @@ namespace Plrm.Chat.Client
             _serverPort = serverPort;
         }
 
-        public void Connect()
+        public bool Connect()
         {
             lock(_lock)
             {
-                _client = new TcpClient();
-                _client.Connect(_serverAddress, _serverPort);
+                try
+                {
+                    _receiveTokenSource = new CancellationTokenSource();
 
-                _receiveTokenSource = new CancellationTokenSource();
-                Task.Run(() => ReceiveData(_receiveTokenSource.Token), _receiveTokenSource.Token);
+                    _client = new TcpClient();
+                    _client.Connect(_serverAddress, _serverPort);
 
-                UIOutput.WriteLineSystem("Server: Connected.");
+                    Task.Run(() => ReceiveData(_receiveTokenSource.Token), _receiveTokenSource.Token);
+
+                    UIOutput.WriteLineSystem("Server: Connected.");
+                    return true;
+                }
+                catch(Exception e)
+                {
+                    _logger.LogInformation($"{e}");
+                    return false;
+                }
             }
         }
 

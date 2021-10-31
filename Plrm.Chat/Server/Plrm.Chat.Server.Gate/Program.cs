@@ -2,7 +2,9 @@
 using Microsoft.Extensions.Logging;
 using Plrm.Chat.Server.Gate.Repositories.Messages;
 using Plrm.Chat.Server.Gate.Repositories.Users;
+using System;
 using System.Net;
+using System.Threading.Tasks;
 
 namespace Plrm.Chat.Server.Gate
 {
@@ -32,6 +34,8 @@ namespace Plrm.Chat.Server.Gate
                 countOfLastMessagesToConnectedUser);
 
             chat.Start();
+
+            Console.ReadKey();
         }
 
         private static void ConfigureServices(IServiceCollection services)

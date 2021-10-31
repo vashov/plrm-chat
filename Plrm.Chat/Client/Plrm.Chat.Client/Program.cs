@@ -40,7 +40,10 @@ namespace Plrm.Chat.Client
                 {
                     InputCredentials(authManager);
 
-                    chat.Connect();
+                    if (!chat.Connect())
+                    {
+                        return;
+                    }
 
                     var successLogin = await chat.LogInToChat();
                     if (!successLogin.Value)

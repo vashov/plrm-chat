@@ -13,6 +13,7 @@ using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace Plrm.Chat.Server.Gate
 {
@@ -65,15 +66,15 @@ namespace Plrm.Chat.Server.Gate
 
                 _logger.LogInformation($"User {count} connected");
 
-                var thread = new Thread(HandleClients);
-                thread.Start(count);
+                Task.Run(async () => await HandleClient(count));
                 count++;
             }
         }
 
-        private void HandleClients(object o)
+        private async Task HandleClient(int id)
         {
-            int id = (int)o;
+            await Task.Yield();
+
             ChatClient chatClient;
 
             lock (_lock)
@@ -81,10 +82,10 @@ namespace Plrm.Chat.Server.Gate
                 chatClient = _listClients[id];
             }
 
-            OperationResult<(User User, bool IsNewUser)> result = AuthenticateClient(chatClient);
+            OperationResult<(User User, bool IsNewUser)> result = await AuthenticateClient(chatClient);
             if (!result.IsOk)
             {
-                chatClient.SendAuthorizeResponseError(result.ErrorMessage);
+                await chatClient.SendAuthorizeResponseError(result.ErrorMessage);
 
                 lock (_lock) _listClients.Remove(id);
                 chatClient.Disconnect();
@@ -92,7 +93,7 @@ namespace Plrm.Chat.Server.Gate
             }
 
             chatClient.Authorize(result.Result.User);
-            chatClient.SendAuthorizeResponseSuccess();
+            await chatClient.SendAuthorizeResponseSuccess();
 
             if (_countOfLastMesssagesToConnectedUser > 0)
             {
@@ -100,8 +101,8 @@ namespace Plrm.Chat.Server.Gate
 
                 foreach (ChatMessage m in messages)
                 {
-                    Thread.Sleep(10);
-                    chatClient.SendMessage(m);
+                    await Task.Delay(10);
+                    await chatClient .SendMessage(m);
                 }
             }
 
@@ -113,11 +114,11 @@ namespace Plrm.Chat.Server.Gate
 
             // System message about new user connected.
             message.UserLogin = "system";
-            Broadcast(message);
+            await Broadcast(message);
 
             while (true)
             {
-                OperationResult<byte[]> readResult = chatClient.ReadMessage();
+                OperationResult<byte[]> readResult = await chatClient.ReadMessage();
 
                 if (!readResult.IsOk)
                 {
@@ -129,7 +130,7 @@ namespace Plrm.Chat.Server.Gate
 
                 // We may create ChatMessageDto and map data from DB layer to Api (via AutoMapper)
                 message.UserLogin = chatClient.User.Login;
-                Broadcast(message);
+                await Broadcast(message);
 
                 string data = Encoding.UTF8.GetString(readResult.Result);
                 _logger.LogTrace(data);
@@ -141,9 +142,9 @@ namespace Plrm.Chat.Server.Gate
             _logger.LogTrace($"Client {id} disconnected");
         }
 
-        private OperationResult<(User User, bool IsNewUser)> AuthenticateClient(ChatClient chatClient)
+        private async Task<OperationResult<(User User, bool IsNewUser)>> AuthenticateClient(ChatClient chatClient)
         {
-            OperationResult<UserCredentials> readResult = chatClient.ReadAuthenticationMessage();
+            OperationResult<UserCredentials> readResult = await chatClient.ReadAuthenticationMessage();
 
             if (!readResult.IsOk)
             {
@@ -176,12 +177,13 @@ namespace Plrm.Chat.Server.Gate
             return OperationResult<(User, bool)>.Ok((createResult.Result, true));
         }
 
-        private void Broadcast(ChatMessage message)
+        private async Task Broadcast(ChatMessage message)
         {
-            lock (_lock)
-            {
-                Broadcaster.SendToAuthorizedUsers(message, _listClients.Values);
-            }
+            //lock (_lock)
+            //{
+            //    Broadcaster.SendToAuthorizedUsers(message, _listClients.Values);
+            //}
+            await Broadcaster.SendToAuthorizedUsers(message, _listClients.Values);
         }
     }
 }
