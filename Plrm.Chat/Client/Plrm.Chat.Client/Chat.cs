@@ -154,9 +154,9 @@ namespace Plrm.Chat.Client
                         return;
                     }
 
+                    string json = Encoding.UTF8.GetString(receivedBytes, 0, byte_count);
                     if (_authManager.IsLoggedIn != true)
                     {
-                        var json = Encoding.UTF8.GetString(receivedBytes, 0, byte_count);
                         var authResponse = JsonSerializer.Deserialize<AuthorizationResponse>(json);
                         if (authResponse.IsOk)
                         {
@@ -167,7 +167,10 @@ namespace Plrm.Chat.Client
                         _authManager.SetStateLoginFailed(authResponse.Error);
                         continue;
                     }
-                    UIOutput.WriteLineChatMessage("User", Encoding.UTF8.GetString(receivedBytes, 0, byte_count));
+
+                    ChatMessage message = JsonSerializer.Deserialize<ChatMessage>(json);
+                    string messageContent = Encoding.UTF8.GetString(message.Content);
+                    UIOutput.WriteLineChatMessage(message.UserLogin, messageContent);
                 }
 
                 if (token.IsCancellationRequested)

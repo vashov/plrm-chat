@@ -100,6 +100,7 @@ namespace Plrm.Chat.Server.Gate
 
                 foreach (ChatMessage m in messages)
                 {
+                    Thread.Sleep(10);
                     chatClient.SendMessage(m);
                 }
             }
@@ -126,7 +127,7 @@ namespace Plrm.Chat.Server.Gate
 
                 message = _messageRepository.Create(chatClient.User.Id, message: readResult.Result);
 
-                // We may create ChatMessageDto and map data from DB layer to Api (via AutoMapper for excample)
+                // We may create ChatMessageDto and map data from DB layer to Api (via AutoMapper)
                 message.UserLogin = chatClient.User.Login;
                 Broadcast(message);
 
