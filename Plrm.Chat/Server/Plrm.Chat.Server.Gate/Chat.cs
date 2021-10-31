@@ -24,7 +24,7 @@ namespace Plrm.Chat.Server.Gate
         private readonly IUserRepository _userRepository;
         private readonly IPAddress _address;
         private readonly int _port;
-
+        private readonly int _countOfLastMesssagesToConnectedUser;
         private TcpListener _listener;
 
         private readonly object _lock = new object();
@@ -35,13 +35,15 @@ namespace Plrm.Chat.Server.Gate
             IMessageRepository messageRepository,
             IUserRepository userRepository,
             IPAddress address,
-            int port)
+            int port,
+            int countOfLastMesssagesToConnectedUser)
         {
             _logger = logger;
             _messageRepository = messageRepository;
             _userRepository = userRepository;
             _address = address;
             _port = port;
+            _countOfLastMesssagesToConnectedUser = countOfLastMesssagesToConnectedUser;
         }
 
         public void Start()
@@ -79,21 +81,28 @@ namespace Plrm.Chat.Server.Gate
                 chatClient = _listClients[id];
             }
 
-            TcpClient client = chatClient.Client;
-
-            OperationResult<(User User, bool IsNewUser)> result = AuthenticateClient(id, client);
+            OperationResult<(User User, bool IsNewUser)> result = AuthenticateClient(chatClient);
             if (!result.IsOk)
             {
                 chatClient.SendAuthorizeResponseError(result.ErrorMessage);
 
                 lock (_lock) _listClients.Remove(id);
-                client.Client.Shutdown(SocketShutdown.Both);
-                client.Close();
+                chatClient.Disconnect();
                 return;
             }
 
             chatClient.Authorize(result.Result.User);
             chatClient.SendAuthorizeResponseSuccess();
+
+            if (_countOfLastMesssagesToConnectedUser > 0)
+            {
+                List<ChatMessage> messages = _messageRepository.List(lastCount: _countOfLastMesssagesToConnectedUser);
+
+                foreach (ChatMessage m in messages)
+                {
+                    chatClient.SendMessage(m);
+                }
+            }
 
             string userConnectedMessage = result.Result.IsNewUser ? $"{chatClient.User.Login} registered and connected"
                 : $"{chatClient.User.Login} connected";
@@ -104,87 +113,42 @@ namespace Plrm.Chat.Server.Gate
 
             while (true)
             {
-                NetworkStream stream = client.GetStream();
-                byte[] buffer = new byte[1024];
+                OperationResult<byte[]> readResult = chatClient.ReadMessage();
 
-                int byte_count = 0;
-
-                try
+                if (!readResult.IsOk)
                 {
-                    byte_count = stream.Read(buffer, 0, buffer.Length);
-                }
-                catch (System.IO.IOException e)
-                {
-                    _logger.LogInformation($"Client {id}: {e}");
-                }
-                catch (Exception e)
-                {
-                    _logger.LogWarning($"Client {id}: {e}");
-                }
-
-                if (byte_count == 0)
-                {
+                    _logger.LogWarning(readResult.ErrorMessage);
                     break;
                 }
 
-                var content = buffer.Take(byte_count).ToArray();
-                string data = Encoding.UTF8.GetString(content);
-
-                message = _messageRepository.Create(chatClient.User.Id, content);
+                message = _messageRepository.Create(chatClient.User.Id, message: readResult.Result);
                 Broadcast(message);
 
+                string data = Encoding.UTF8.GetString(readResult.Result);
                 _logger.LogTrace(data);
             }
 
-            _logger.LogTrace($"Client {id} disconnected");
-
             lock (_lock) _listClients.Remove(id);
-            client.Client.Shutdown(SocketShutdown.Both);
-            client.Close();
+            chatClient.Disconnect();
+
+            _logger.LogTrace($"Client {id} disconnected");
         }
 
-        private OperationResult<(User User, bool IsNewUser)> AuthenticateClient(long id, TcpClient client)
+        private OperationResult<(User User, bool IsNewUser)> AuthenticateClient(ChatClient chatClient)
         {
-            NetworkStream stream = client.GetStream();
-            byte[] buffer = new byte[1024];
+            OperationResult<UserCredentials> readResult = chatClient.ReadAuthenticationMessage();
 
-            int byte_count = 0;
-
-            try
+            if (!readResult.IsOk)
             {
-                byte_count = stream.Read(buffer, 0, buffer.Length);
-            }
-            catch (System.IO.IOException e)
-            {
-                _logger.LogInformation($"Client {id}: {e}");
-            }
-            catch (Exception e)
-            {
-                _logger.LogWarning($"Client {id}: {e}");
+                _logger.LogWarning(readResult.ErrorMessage);
+                return OperationResult<(User, bool)>.Error("Invalid data.");
             }
 
-            if (byte_count == 0)
-            {
-                return OperationResult<(User, bool)>.Error("User credentials data is empty.");
-            }
-
-            var content = buffer.Take(byte_count).ToArray();
-            string data = Encoding.UTF8.GetString(content);
-
-            UserCredentials userCredentials;
-            try
-            {
-                userCredentials = JsonSerializer.Deserialize<UserCredentials>(data);
-            }
-            catch (Exception e)
-            {
-                _logger.LogWarning($"Client {id} UserCredentials Deserialize: {e}");
-                return OperationResult<(User, bool)>.Error("Invalid user credentials data.");
-            }
+            UserCredentials userCredentials = readResult.Result;
 
             if (!UserCredentialsValidator.IsValid(userCredentials.Login, userCredentials.Password))
             {
-                _logger.LogTrace($"Client {id} UserCredentials Invalid");
+                _logger.LogTrace($"Client {chatClient.Id} UserCredentials Invalid");
                 return OperationResult<(User, bool)>.Error("Login or password has invalid format.");
             }
 

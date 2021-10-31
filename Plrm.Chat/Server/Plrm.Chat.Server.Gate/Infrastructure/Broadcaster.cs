@@ -1,6 +1,5 @@
 ﻿using Plrm.Chat.Shared.Models;
 using System.Collections.Generic;
-using System.Net.Sockets;
 
 namespace Plrm.Chat.Server.Gate.Infrastructure
 {
@@ -10,11 +9,10 @@ namespace Plrm.Chat.Server.Gate.Infrastructure
         {
             foreach (ChatClient chatClient in clients)
             {
-                if (chatClient.User == null)
+                if (!chatClient.IsAuthorized)
                     continue;
 
-                NetworkStream stream = chatClient.Client.GetStream();
-                stream.Write(message.Content);
+                chatClient.SendMessage(message);
             }
         }
     }

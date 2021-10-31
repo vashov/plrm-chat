@@ -5,9 +5,9 @@ VisualStudioVersion = 16.0.31129.286
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Plrm.Chat.Server.Gate", "Server\Plrm.Chat.Server.Gate\Plrm.Chat.Server.Gate.csproj", "{4915745C-7433-4E55-A333-35204E011275}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Plrm.Chat.Client", "Client\Plrm.Chat.Client\Plrm.Chat.Client.csproj", "{37AEEF91-5E74-4BA8-8C6B-B17A46B9F19D}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Plrm.Chat.Client", "Client\Plrm.Chat.Client\Plrm.Chat.Client.csproj", "{37AEEF91-5E74-4BA8-8C6B-B17A46B9F19D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Plrm.Chat.Shared", "Shared\Plrm.Chat.Shared\Plrm.Chat.Shared.csproj", "{0C009AAB-25BE-4D76-8022-A2F974361E21}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Plrm.Chat.Shared", "Shared\Plrm.Chat.Shared\Plrm.Chat.Shared.csproj", "{0C009AAB-25BE-4D76-8022-A2F974361E21}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

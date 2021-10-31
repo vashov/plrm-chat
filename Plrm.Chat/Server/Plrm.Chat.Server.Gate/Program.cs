@@ -19,7 +19,8 @@ namespace Plrm.Chat.Server.Gate
             var messageRepository = serviceProvider.GetRequiredService<IMessageRepository>();
             var userRepository = serviceProvider.GetRequiredService<IUserRepository>();
 
-            var chat = new Chat(logger, messageRepository, userRepository, IPAddress.Any, 5000);
+            int countOfLastMessagesToConnectedUser = 10;
+            var chat = new Chat(logger, messageRepository, userRepository, IPAddress.Any, 5000, countOfLastMessagesToConnectedUser);
             chat.Start();
         }
 
