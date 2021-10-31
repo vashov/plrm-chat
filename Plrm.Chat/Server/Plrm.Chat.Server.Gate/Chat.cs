@@ -66,15 +66,14 @@ namespace Plrm.Chat.Server.Gate
 
                 _logger.LogInformation($"User {count} connected");
 
-                Task.Run(async () => await HandleClient(count));
+                int clientId = count;
+                Task.Run(() => HandleClient(clientId));
                 count++;
             }
         }
 
-        private async Task HandleClient(int id)
+        private async void HandleClient(int id)
         {
-            await Task.Yield();
-
             ChatClient chatClient;
 
             lock (_lock)
