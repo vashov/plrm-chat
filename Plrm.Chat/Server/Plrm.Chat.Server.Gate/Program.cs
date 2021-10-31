@@ -21,7 +21,7 @@ namespace Plrm.Chat.Server.Gate
 
             int countOfLastMessagesToConnectedUser = 10;
             IPAddress serverAddress = IPAddress.Any;
-            int port = 500;
+            int port = 5000;
 
             var chat = new Chat(
                 logger,
