@@ -1,8 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
 using Plrm.Chat.Shared.Models;
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -23,7 +21,6 @@ namespace Plrm.Chat.Client
 
         private object _lock = new object();
 
-        private Thread _threadReceive = null;
         private CancellationTokenSource _receiveTokenSource = default;
 
         public Chat(ILogger<Chat> logger, AuthManager authManager, IPAddress serverAddress, int serverPort)
@@ -42,8 +39,7 @@ namespace Plrm.Chat.Client
                 _client.Connect(_serverAddress, _serverPort);
 
                 _receiveTokenSource = new CancellationTokenSource();
-                _threadReceive = new Thread(t => ReceiveData((CancellationToken)t));
-                _threadReceive.Start(_receiveTokenSource.Token);
+                Task.Run(() => ReceiveData(_receiveTokenSource.Token), _receiveTokenSource.Token);
 
                 UIOutput.WriteLineSystem("Server: Connected.");
             }
@@ -95,7 +91,7 @@ namespace Plrm.Chat.Client
             }
         }
 
-        public bool? LogInToChat()
+        public async Task<bool?> LogInToChat()
         {
             NetworkStream stream = _client.GetStream();
 
@@ -120,7 +116,7 @@ namespace Plrm.Chat.Client
             while (_authManager.IsLoggedIn == null)
             {
                 UIOutput.WriteLineSystem("Wait authorization response ... ");
-                Thread.Sleep(100);
+                await Task.Delay(100);
             }
 
             return _authManager.IsLoggedIn;
@@ -128,7 +124,6 @@ namespace Plrm.Chat.Client
 
         public void Dispose()
         {
-            // TODO: Right implementation of Dispose
             Disconnect();
         }
 

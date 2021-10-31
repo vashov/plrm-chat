@@ -1,13 +1,9 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Plrm.Chat.Shared.Models;
 using Plrm.Chat.Shared.Validators;
 using System;
 using System.Net;
-using System.Net.Sockets;
-using System.Text;
-using System.Text.Json;
-using System.Threading;
+using System.Threading.Tasks;
 
 namespace Plrm.Chat.Client
 {
@@ -23,7 +19,7 @@ namespace Plrm.Chat.Client
             services.AddSingleton<AuthManager>();
         }
 
-        static void Main(string[] args)
+        static async Task Main(string[] args)
         {
             IPAddress serverAddress = IPAddress.Parse("127.0.0.1");
             int serverPort = 5000;
@@ -46,12 +42,10 @@ namespace Plrm.Chat.Client
 
                     chat.Connect();
 
-                    var successLogin = chat.LogInToChat();
+                    var successLogin = await chat.LogInToChat();
                     if (!successLogin.Value)
                     {
                         UIOutput.WriteLineError($"Authorization error: {_errorMsg}");
-
-                        //thread.Join();
                         chat.Disconnect();
                     }
                 }
@@ -66,9 +60,6 @@ namespace Plrm.Chat.Client
             finally
             {
                 chat.Disconnect();
-                //client?.Client.Shutdown(SocketShutdown.Send);
-                //thread?.Join();
-                //client?.Close();
             }
 
             UIOutput.WriteLineSystem("Enter any KEY to exit...");
