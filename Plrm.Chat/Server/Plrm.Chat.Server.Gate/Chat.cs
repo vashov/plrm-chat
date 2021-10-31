@@ -113,7 +113,7 @@ namespace Plrm.Chat.Server.Gate
 
             // System message about new user connected.
             message.UserLogin = "system";
-            await Broadcast(message);
+            Broadcast(message);
 
             while (true)
             {
@@ -129,7 +129,7 @@ namespace Plrm.Chat.Server.Gate
 
                 // We may create ChatMessageDto and map data from DB layer to Api (via AutoMapper)
                 message.UserLogin = chatClient.User.Login;
-                await Broadcast(message);
+                Broadcast(message);
 
                 string data = Encoding.UTF8.GetString(readResult.Result);
                 _logger.LogTrace(data);
@@ -176,13 +176,15 @@ namespace Plrm.Chat.Server.Gate
             return OperationResult<(User, bool)>.Ok((createResult.Result, true));
         }
 
-        private async Task Broadcast(ChatMessage message)
+        private void Broadcast(ChatMessage message)
         {
-            //lock (_lock)
-            //{
-            //    Broadcaster.SendToAuthorizedUsers(message, _listClients.Values);
-            //}
-            await Broadcaster.SendToAuthorizedUsers(message, _listClients.Values);
+            lock (_lock)
+            {
+                Broadcaster.SendToAuthorizedUsers(message, _listClients.Values)
+                    .ConfigureAwait(false)
+                    .GetAwaiter()
+                    .GetResult();
+            }
         }
     }
 }
