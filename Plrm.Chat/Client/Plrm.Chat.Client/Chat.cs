@@ -1,4 +1,5 @@
-﻿using Plrm.Chat.Shared.Models;
+﻿using Microsoft.Extensions.Logging;
+using Plrm.Chat.Shared.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -13,6 +14,7 @@ namespace Plrm.Chat.Client
 {
     class Chat : IDisposable
     {
+        private readonly ILogger<Chat> _logger;
         private AuthManager _authManager;
         private readonly IPAddress _serverAddress;
         private readonly int _serverPort;
@@ -24,8 +26,9 @@ namespace Plrm.Chat.Client
         private Thread _threadReceive = null;
         private CancellationTokenSource _receiveTokenSource = default;
 
-        public Chat(AuthManager authManager, IPAddress serverAddress, int serverPort)
+        public Chat(ILogger<Chat> logger, AuthManager authManager, IPAddress serverAddress, int serverPort)
         {
+            _logger = logger;
             _authManager = authManager;
             _serverAddress = serverAddress;
             _serverPort = serverPort;
@@ -42,7 +45,7 @@ namespace Plrm.Chat.Client
                 _threadReceive = new Thread(t => ReceiveData((CancellationToken)t));
                 _threadReceive.Start(_receiveTokenSource.Token);
 
-                Console.WriteLine("Server: Connected.");
+                UIOutput.WriteLineSystem("Server: Connected.");
             }
         }
 
@@ -51,7 +54,7 @@ namespace Plrm.Chat.Client
             Disconnect();
             Connect();
 
-            Console.WriteLine("Server: Reconnected.");
+            UIOutput.WriteLineSystem("Server: Reconnected.");
         }
 
         public void Disconnect()
@@ -70,10 +73,10 @@ namespace Plrm.Chat.Client
             }
             catch (Exception e)
             {
-                Console.WriteLine($"Disconnect: {e}");
+                _logger.LogWarning($"Disconnect: {e}");
             }
 
-            Console.WriteLine("Server: Disconnected.");
+            UIOutput.WriteLineSystem("Server: Disconnected.");
         }
 
         public void SendMessage(string message)
@@ -88,7 +91,7 @@ namespace Plrm.Chat.Client
             }
             catch (Exception e)
             {
-                Console.WriteLine($"Chat SendMessage: {e}");
+                _logger.LogWarning($"Chat SendMessage: {e}");
             }
         }
 
@@ -110,13 +113,13 @@ namespace Plrm.Chat.Client
             }
             catch (Exception e)
             {
-                Console.WriteLine($"{e}");
+                _logger.LogWarning($"Chat LogInToChat: {e}");
                 return false;
             }
 
             while (_authManager.IsLoggedIn == null)
             {
-                Console.WriteLine("Wait authorization response ... ");
+                UIOutput.WriteLineSystem("Wait authorization response ... ");
                 Thread.Sleep(100);
             }
 
@@ -131,7 +134,7 @@ namespace Plrm.Chat.Client
 
         private void ReceiveData(CancellationToken token)
         {
-            Console.WriteLine("Chat ReceiveData: Start receiving.");
+            UIOutput.WriteLineSystem("Chat ReceiveData: Start receiving.");
 
             try
             {
@@ -164,17 +167,17 @@ namespace Plrm.Chat.Client
                         _authManager.SetStateLoginFailed(authResponse.Error);
                         continue;
                     }
-                    Console.WriteLine(Encoding.UTF8.GetString(receivedBytes, 0, byte_count));
+                    UIOutput.WriteLineChatMessage("User", Encoding.UTF8.GetString(receivedBytes, 0, byte_count));
                 }
 
                 if (token.IsCancellationRequested)
                 {
-                    Console.WriteLine("Chat ReceiveData: IsCancellationRequested.");
+                    UIOutput.WriteLineSystem("Chat ReceiveData: IsCancellationRequested.");
                 }
             }
             catch (Exception e)
             {
-                Console.WriteLine($"Chat ReceiveData: {e}");
+                _logger.LogWarning($"Chat ReceiveData: {e}");
             }
 
         }

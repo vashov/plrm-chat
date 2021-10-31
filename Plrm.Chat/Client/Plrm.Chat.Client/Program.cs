@@ -1,4 +1,6 @@
-﻿using Plrm.Chat.Shared.Models;
+﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Plrm.Chat.Shared.Models;
 using Plrm.Chat.Shared.Validators;
 using System;
 using System.Net;
@@ -13,13 +15,28 @@ namespace Plrm.Chat.Client
     {
         static string _errorMsg = null;
 
+        private static void ConfigureServices(IServiceCollection services)
+        {
+            services.AddLogging(configure => configure.AddConsole())
+                .Configure<LoggerFilterOptions>(options => options.MinLevel = LogLevel.Trace);
+
+            services.AddSingleton<AuthManager>();
+        }
+
         static void Main(string[] args)
         {
             IPAddress serverAddress = IPAddress.Parse("127.0.0.1");
             int serverPort = 5000;
 
-            var authManager = new AuthManager();
-            var chat = new Chat(authManager, serverAddress, serverPort);
+            var serviceCollection = new ServiceCollection();
+            ConfigureServices(serviceCollection);
+
+            var serviceProvider = serviceCollection.BuildServiceProvider();
+
+            var logger = serviceProvider.GetRequiredService<ILogger<Chat>>();
+            var authManager = serviceProvider.GetRequiredService<AuthManager>();
+
+            var chat = new Chat(logger, authManager, serverAddress, serverPort);
 
             try
             {
@@ -32,7 +49,7 @@ namespace Plrm.Chat.Client
                     var successLogin = chat.LogInToChat();
                     if (!successLogin.Value)
                     {
-                        Console.WriteLine($"Authorization error: {_errorMsg}");
+                        UIOutput.WriteLineError($"Authorization error: {_errorMsg}");
 
                         //thread.Join();
                         chat.Disconnect();
@@ -54,7 +71,7 @@ namespace Plrm.Chat.Client
                 //client?.Close();
             }
 
-            Console.WriteLine("Enter any KEY to exit...");
+            UIOutput.WriteLineSystem("Enter any KEY to exit...");
             Console.ReadKey();
         }
 
@@ -64,13 +81,13 @@ namespace Plrm.Chat.Client
 
             while (!UserCredentialsValidator.IsLoginValid(authManager.Login))
             {
-                Console.Write("Enter Login: ");
+                UIOutput.WriteUserInteraction("Enter Login: ");
                 authManager.Login = Console.ReadLine();
             }
 
             while (!UserCredentialsValidator.IsPasswordValid(authManager.Password))
             {
-                Console.Write("Enter password: ");
+                UIOutput.WriteUserInteraction("Enter password: ");
                 authManager.Password = Console.ReadLine();
             }
         }
