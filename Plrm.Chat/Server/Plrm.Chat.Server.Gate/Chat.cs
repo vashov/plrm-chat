@@ -109,6 +109,9 @@ namespace Plrm.Chat.Server.Gate
 
             byte[] messageContent = Encoding.UTF8.GetBytes(userConnectedMessage);
             ChatMessage message = _messageRepository.Create(chatClient.User.Id, messageContent);
+
+            // System message about new user connected.
+            message.UserLogin = "system";
             Broadcast(message);
 
             while (true)
@@ -122,6 +125,9 @@ namespace Plrm.Chat.Server.Gate
                 }
 
                 message = _messageRepository.Create(chatClient.User.Id, message: readResult.Result);
+
+                // We may create ChatMessageDto and map data from DB layer to Api (via AutoMapper for excample)
+                message.UserLogin = chatClient.User.Login;
                 Broadcast(message);
 
                 string data = Encoding.UTF8.GetString(readResult.Result);

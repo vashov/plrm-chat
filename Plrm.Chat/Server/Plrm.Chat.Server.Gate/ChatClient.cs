@@ -12,14 +12,14 @@ namespace Plrm.Chat.Server.Gate
     class ChatClient
     {
         public long Id { get; }
-        private TcpClient Client { get; }
+        private TcpClient _client { get; }
         public User User { get; private set; }
         public bool IsAuthorized => User != null;
 
         public ChatClient(long id, TcpClient client)
         {
             Id = id;
-            Client = client;
+            _client = client;
         }
 
         public void Authorize(User user)
@@ -29,7 +29,7 @@ namespace Plrm.Chat.Server.Gate
 
         public void SendAuthorizeResponseSuccess()
         {
-            NetworkStream stream = Client.GetStream();
+            NetworkStream stream = _client.GetStream();
 
             var authResponse = new AuthorizationResponse
             {
@@ -44,7 +44,7 @@ namespace Plrm.Chat.Server.Gate
 
         public void SendAuthorizeResponseError(string error)
         {
-            NetworkStream stream = Client.GetStream();
+            NetworkStream stream = _client.GetStream();
 
             var authResponse = new AuthorizationResponse
             {
@@ -62,13 +62,13 @@ namespace Plrm.Chat.Server.Gate
             var json = JsonSerializer.Serialize(message);
             byte[] data = Encoding.UTF8.GetBytes(json);
 
-            NetworkStream stream = Client.GetStream();
+            NetworkStream stream = _client.GetStream();
             stream.Write(data);
         }
 
         public OperationResult<byte[]> ReadMessage()
         {
-            NetworkStream stream = Client.GetStream();
+            NetworkStream stream = _client.GetStream();
             byte[] buffer = new byte[1024];
 
             int byteCount;
@@ -97,7 +97,7 @@ namespace Plrm.Chat.Server.Gate
 
         public OperationResult<UserCredentials> ReadAuthenticationMessage()
         {
-            NetworkStream stream = Client.GetStream();
+            NetworkStream stream = _client.GetStream();
             byte[] buffer = new byte[1024];
 
             int byteCount;
@@ -139,8 +139,9 @@ namespace Plrm.Chat.Server.Gate
 
         public void Disconnect()
         {
-            Client.Client.Shutdown(SocketShutdown.Both);
-            Client.Close();
+            _client.Client.Shutdown(SocketShutdown.Both);
+            _client.Close();
+            User = null;
         }
     }
 }
